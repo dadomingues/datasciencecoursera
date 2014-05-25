@@ -1,3 +1,5 @@
+#TidyDataSet CodeBook, the run_analysis.R output
+
 The generates file, __TidyDataSet.txt__, has the following columns:
 
 "1" "activity" (make reference to the activity)

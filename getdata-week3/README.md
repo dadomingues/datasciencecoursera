@@ -11,3 +11,5 @@ To execute or run the script, you have to do:
 6. The functions inside the script read the tables in the ".txt" files inside the "UCI HAR Dataset" folder, combine and merge to generate a tidy dataset.
 7. When the script finish the execution, you will get a tidyDataSet.txt in your work directory.
 
+Read the CookBook to get the output columns.
+

@@ -1,4 +1,4 @@
-#Project Week 3 - getdata Coursera
+#Week 3 project - getdata Coursera
 
 This folder contain the files of the __week 3 project__ to the __getdata coursera course__.
 To execute or run the script, you have to do:

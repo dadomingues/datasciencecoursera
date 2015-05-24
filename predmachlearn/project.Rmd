@@ -1,0 +1,184 @@
+# Building a Predictive Model for Weight Lifting Exercises Dataset
+## Pratical Machile Learning Writeup
+
+Researchers from PUC Rio developed a dataset in which collected a large amount of data about weight lifting exercises.
+This report show how was built a predictive model to predict the manner in which the people did the activity.
+The data for this project come from this source: <http://groupware.les.inf.puc-rio.br/har>.
+
+```{r echo=FALSE, results='hide'}
+project.time.start <- proc.time()
+```
+
+### Preparing the Enviorment
+
+To work in easiest place, we can change the default work directory (WD) to a specific folder. If we don't do this, the files downloaded and generated will be stored in the default WD.
+```{r}
+# setwd("~/coursera/predmachlearn")
+```
+
+We have to work with a library. So, let's load it:
+
+```{r loading_libraries}
+library(caret, quietly = TRUE)
+library(randomForest)
+```
+
+Now, load (or download) the training dataset:
+
+```{r loading_dataset}
+if (!file.exists("./pml-training.csv")) {
+  download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+                destfile = "./pml-training.csv")
+}
+training = read.csv("./pml-training.csv", header = TRUE, na.strings = c("NA", ""), stringsAsFactors = T)
+```
+
+### Data Analysis
+
+Look to the dataset dimension:
+
+```{r}
+dim(training)
+```
+
+```{r echo=FALSE}
+paste("it means", dim(training)[1], "observations", dim(training)[2], "predictors")
+```
+
+A barplot show us the proportion of each "classe".
+
+```{r training_barplot}
+barplot(table(training$classe), xlab="classe", ylab="quantity", main="Quantity by classes - training dataset")
+```
+
+How many are completed? In other words, how many has no missing value?
+
+```{r}
+complete.observations <- sum(complete.cases(training))
+paste("only", complete.observations, "from a total of ", dim(training)[1])
+```
+
+A lot of observations is considered uncomplete because of bad variables.
+In preference to work with more observations, let's ignore these bad predictors.
+It is a radical decision: if a predictor has one missing value, it will be discarted!
+We are ignoring predictors with identification, which has no value to out prediction, and with no, or almost no, variance too.
+
+```{r cleaning_dataset}
+# Keep only predictors with no missing values
+columns.to.keep <- colSums(is.na(training)) == 0
+training <- training[,columns.to.keep]
+# Remove predictors with almost no variance
+columns.to.remove <- nearZeroVar(training)
+training <- training[,-columns.to.remove]
+# Remove first 6 columns with only identification data (index, user, window etc)
+training <- training[,-(1:6)]
+```
+
+### Build a Model
+
+```{r echo=FALSE, results='hide'}
+model.time.start <- proc.time()
+```
+
+Let's consider that the dataset came splited (training and testing). So the model will be created using the whole training data.
+Set a seed to reproducibility:
+
+```{r seed}
+set.seed(5584)
+```
+
+How much more trees in the model, better. However, the computer get slow and more
+memory is used. A good number of trees to this model is 512 because have a good error rate
+with less than 50MB.
+
+```{r build_model}
+model <- randomForest(classe ~ ., data = training, ntree = 512)
+model
+```
+
+```{r echo=FALSE, results='hide'}
+model.time <- proc.time() - model.time.start
+```
+
+We can see the number of trees, error rate and a good confusion matrix.
+Look to variable importance to the prediction: each predictor and its importance/overall.
+
+```{r important_predictors}
+varImp(model)
+```
+
+## Prediction on train dataset
+
+We can apply the model in a dataset like it is done in the next line.
+
+```{r training_prediction}
+prediction <- predict(model, training)
+```
+
+This line create a list with a class for each observation in the dataset, in this case 19622.
+Let's see the head of this result (prediction):
+
+```{r show_training_prediction}
+head(prediction, n=20)
+```
+
+## Applying the model to the test dataset
+
+```{r echo=FALSE, results='hide'}
+prediction.time.start <- proc.time()
+```
+
+The test dataset has 20 observation and we will apply the model to predict the "classe" for each one.
+
+```{r loading_testing_dataset}
+if (!file.exists("./pml-testing.csv")) {
+  download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+                destfile = "./pml-testing.csv")
+}
+testing = read.csv("./pml-testing.csv", header = TRUE, na.strings = c("NA", ""), stringsAsFactors = T)
+```
+
+```{r testing_prediction}
+prediction <- predict(model, testing)
+```
+
+```{r echo=FALSE, results='hide'}
+prediction.time <- proc.time() - prediction.time.start
+```
+
+```{r show_testing_prediction}
+head(prediction, n=3) # yes, only 3
+```
+
+## Processing time
+
+```{r echo=FALSE, results='hide'}
+project.time <- proc.time() - project.time.start
+```
+
+The process time, in seconds, for the model building, the predicting step and the whole report/project.
+
+```{r echo=FALSE}
+paste("model time", model.time[3])
+paste("prediction time", prediction.time[3])
+paste("project time", project.time[3])
+```
+
+## Submission
+To send the result we have put each prediction in a file. The script offered is used:
+
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(prediction)
+```
+
+## Conclusion
+
+With the model generated we can get a good prediction and its use in the testing dataset can be considered a success.
